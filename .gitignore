@@ -1,0 +1,21 @@
+# --- Security (The most important part) ---
+.env
+.env.local
+*.key
+
+# --- Python temporary files (Junk files) ---
+__pycache__/
+*.pyc
+
+# --- Virtual Environments (Heavy folders we don't need to upload) ---
+venv/
+env/
+.venv/
+
+# --- IDE Settings (Your personal editor settings) ---
+.vscode/
+.idea/
+
+# --- Operating System Junk ---
+.DS_Store
+Thumbs.db

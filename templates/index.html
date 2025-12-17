@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Generic Medicine Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* Keeping all the colors in one place makes it easy to change the theme later */
+        :root {
+            --primary-color: #14b8a6; /* Teal */
+            --primary-hover: #0d9488;
+            --dark-color: #334155;    
+            --light-color: #f1f5f9;
+            --text-color: #475569;
+            --border-color: #e2e8f0;
+            --bg-color: #f8fafc;
+            --white: #ffffff;
+            --error-bg: #fff1f2;
+            --error-text: #e53e3e;
+            --error-border: #fecaca;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Making the header look clean and centered */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .header i {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        .header h1 {
+            color: var(--dark-color);
+            font-weight: 700;
+            font-size: 2rem;
+        }
+        .header p {
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            color: var(--text-color);
+        }
+
+        /* Styling the input box and search button */
+        #search-form {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+        #brand-name-input {
+            flex-grow: 1;
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out;
+            color: var(--dark-color);
+        }
+        #brand-name-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
+            border-color: var(--primary-color);
+        }
+        #search-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background-color: var(--primary-color);
+            color: var(--white);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        #search-button:hover {
+            background-color: var(--primary-hover);
+        }
+        #search-button i {
+            font-size: 1.2rem;
+        }
+
+        /* We hide the results initially and slide them up when ready */
+        #results-container {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* The bouncing dots animation for loading */
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .dot {
+            height: 12px;
+            width: 12px;
+            margin: 0 4px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot.one { animation-delay: -0.32s; }
+        .dot.two { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        /* Styling for success/error messages */
+        .message {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-align: left;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--light-color);
+        }
+        .message i {
+            font-size: 1.75rem;
+            color: var(--dark-color);
+        }
+        .message.error {
+            background-color: var(--error-bg);
+            border-color: var(--error-border);
+            color: var(--error-text);
+        }
+        .message.error i {
+            color: var(--error-text);
+        }
+
+        /* The actual table of medicines */
+        .results-header {
+            margin-bottom: 1.5rem;
+        }
+        .results-header h2 {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+            margin-bottom: 0.25rem;
+        }
+        .results-header p {
+            color: var(--text-color);
+        }
+        .results-header strong {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            background-color: var(--light-color);
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        td:first-child {
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.5rem; }
+            .container { padding: 1.5rem; }
+            .header h1 { font-size: 1.5rem; }
+            #search-form { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <i class='bx bxs-capsule'></i>
+            <h1>Generic Medicine Finder</h1>
+            <p>Enter a brand-name drug to find its generic alternatives.</p>
+        </header>
+
+        <main>
+            <form id="search-form">
+                <input type="text" id="brand-name-input" placeholder="e.g., Tylenol, Advil, Lipitor..." required>
+                <button type="submit" id="search-button">
+                    <i class='bx bx-search'></i>
+                    <span>Search</span>
+                </button>
+            </form>
+
+            <div id="results-container">
+                </div>
+        </main>
+    </div>
+
+    <script>
+        const form = document.getElementById('search-form');
+        const input = document.getElementById('brand-name-input');
+        const resultsContainer = document.getElementById('results-container');
+
+        // Pop the cursor in the input box immediately so they can start typing
+        window.onload = () => {
+            input.focus();
+        };
+        
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Stop the page from refreshing
+            
+            const brandName = input.value.trim();
+            if (!brandName) return;
+
+            // Trigger the loading animation while we wait
+            showLoader();
+
+            try {
+                // Talk to our Python backend
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brand_name: brandName }),
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    displayResults(result.data, result.ingredient);
+                } else if (result.status === 'not_found') {
+                    // We found ingredients, but no generics
+                    displayMessage(`<strong>Active Ingredient(s):</strong> ${result.ingredient}.<br>${result.message}`, 'info');
+                } else { 
+                    // Something went wrong or bad input
+                    displayMessage(result.message, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                displayMessage('A network error occurred. Please check your connection or the server status.', 'error');
+            }
+            
+            // Fade the results in smoothly
+            resultsContainer.classList.add('visible');
+        });
+
+        function showLoader() {
+            resultsContainer.classList.remove('visible');
+            resultsContainer.innerHTML = `
+                <div class="loader">
+                    <div class="dot one"></div>
+                    <div class="dot two"></div>
+                    <div class="dot three"></div>
+                </div>
+            `;
+            // Tiny delay ensures the fade-in animation plays correctly
+            setTimeout(() => resultsContainer.classList.add('visible'), 10);
+        }
+
+        function displayResults(data, ingredient) {
+            let tableHTML = `
+                <div class="results-header">
+                    <h2>Generic Alternatives Found</h2>
+                    <p>Showing products that contain <strong>${ingredient}</strong></p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>Manufacturer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            if (data.length === 0) {
+                 tableHTML += `<tr><td colspan="2" style="text-align: center;">No other generic products were found.</td></tr>`;
+            } else {
+                data.forEach(item => {
+                    tableHTML += `
+                        <tr>
+                            <td>${item.product_name || 'N/A'}</td>
+                            <td>${item.manufacturer || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+            }
+
+            tableHTML += '</tbody></table>';
+            resultsContainer.innerHTML = tableHTML;
+        }
+
+        function displayMessage(message, type = 'info') {
+            const iconClass = type === 'error' ? 'bxs-error-circle' : 'bxs-info-circle';
+            const messageClass = type === 'error' ? 'message error' : 'message';
+            resultsContainer.innerHTML = `
+                <div class="${messageClass}">
+                    <i class='bx ${iconClass}'></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
