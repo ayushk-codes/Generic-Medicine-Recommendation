@@ -139,4 +139,9 @@ def search():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # --- Security Fix for Production ---
+    # We never want 'debug=True' on a live server (AWS/Heroku/Render).
+    # We check the .env file for 'FLASK_DEBUG'. If not found, it defaults to False.
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    
+    app.run(debug=debug_mode)

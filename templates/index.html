@@ -278,7 +278,8 @@
                     displayResults(result.data, result.ingredient);
                 } else if (result.status === 'not_found') {
                     // We found ingredients, but no generics
-                    displayMessage(`<strong>Active Ingredient(s):</strong> ${result.ingredient}.<br>${result.message}`, 'info');
+                    // Note: We pass raw text mostly, formatting handled safely
+                    displayMessage(`Active Ingredient(s): ${result.ingredient}. ${result.message}`, 'info');
                 } else { 
                     // Something went wrong or bad input
                     displayMessage(result.message, 'error');
@@ -295,6 +296,7 @@
 
         function showLoader() {
             resultsContainer.classList.remove('visible');
+            // Static HTML for loader is safe
             resultsContainer.innerHTML = `
                 <div class="loader">
                     <div class="dot one"></div>
@@ -306,48 +308,86 @@
             setTimeout(() => resultsContainer.classList.add('visible'), 10);
         }
 
+        // --- SECURITY FIX: Using DOM creation to prevent XSS ---
         function displayResults(data, ingredient) {
-            let tableHTML = `
-                <div class="results-header">
-                    <h2>Generic Alternatives Found</h2>
-                    <p>Showing products that contain <strong>${ingredient}</strong></p>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Product Name</th>
-                            <th>Manufacturer</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            resultsContainer.innerHTML = ''; // Clear previous results
+
+            // 1. Create the Header
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'results-header';
+
+            const headerTitle = document.createElement('h2');
+            headerTitle.textContent = 'Generic Alternatives Found';
+
+            const headerDesc = document.createElement('p');
+            headerDesc.append('Showing products that contain ');
             
+            const strongTag = document.createElement('strong');
+            strongTag.textContent = ingredient; // Safe injection
+            
+            headerDesc.appendChild(strongTag);
+            headerDiv.appendChild(headerTitle);
+            headerDiv.appendChild(headerDesc);
+            resultsContainer.appendChild(headerDiv);
+
+            // 2. Create the Table
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            // Static headers are safe
+            thead.innerHTML = `
+                <tr>
+                    <th>Product Name</th>
+                    <th>Manufacturer</th>
+                </tr>
+            `; 
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+
             if (data.length === 0) {
-                 tableHTML += `<tr><td colspan="2" style="text-align: center;">No other generic products were found.</td></tr>`;
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 2;
+                cell.style.textAlign = 'center';
+                cell.textContent = 'No other generic products were found.';
+                row.appendChild(cell);
+                tbody.appendChild(row);
             } else {
                 data.forEach(item => {
-                    tableHTML += `
-                        <tr>
-                            <td>${item.product_name || 'N/A'}</td>
-                            <td>${item.manufacturer || 'N/A'}</td>
-                        </tr>
-                    `;
+                    const row = document.createElement('tr');
+
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = item.product_name || 'N/A'; // Secure
+                    
+                    const manufCell = document.createElement('td');
+                    manufCell.textContent = item.manufacturer || 'N/A'; // Secure
+
+                    row.appendChild(nameCell);
+                    row.appendChild(manufCell);
+                    tbody.appendChild(row);
                 });
             }
 
-            tableHTML += '</tbody></table>';
-            resultsContainer.innerHTML = tableHTML;
+            table.appendChild(tbody);
+            resultsContainer.appendChild(table);
         }
 
-        function displayMessage(message, type = 'info') {
-            const iconClass = type === 'error' ? 'bxs-error-circle' : 'bxs-info-circle';
-            const messageClass = type === 'error' ? 'message error' : 'message';
-            resultsContainer.innerHTML = `
-                <div class="${messageClass}">
-                    <i class='bx ${iconClass}'></i>
-                    <p>${message}</p>
-                </div>
-            `;
+        // --- SECURITY FIX: Updated displayMessage to be safer ---
+        function displayMessage(messageText, type = 'info') {
+            resultsContainer.innerHTML = ''; // Clear container
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'message error' : 'message';
+
+            const icon = document.createElement('i');
+            icon.className = type === 'error' ? 'bx bxs-error-circle' : 'bx bxs-info-circle';
+
+            const textP = document.createElement('p');
+            textP.textContent = messageText; // Treats input strictly as text
+
+            messageDiv.appendChild(icon);
+            messageDiv.appendChild(textP);
+            resultsContainer.appendChild(messageDiv);
         }
     </script>
 </body>
