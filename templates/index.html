@@ -14,7 +14,7 @@
         :root {
             --primary-color: #14b8a6; /* Teal */
             --primary-hover: #0d9488;
-            --dark-color: #334155;    
+            --dark-color: #334155;     
             --light-color: #f1f5f9;
             --text-color: #475569;
             --border-color: #e2e8f0;
@@ -259,7 +259,13 @@
             event.preventDefault(); // Stop the page from refreshing
             
             const brandName = input.value.trim();
-            if (!brandName) return;
+            
+            // --- UI FIX ---
+            // If empty, shake the input or just focus it.
+            if (!brandName) {
+                input.focus();
+                return;
+            }
 
             // Trigger the loading animation while we wait
             showLoader();
@@ -308,7 +314,7 @@
             setTimeout(() => resultsContainer.classList.add('visible'), 10);
         }
 
-        // --- SECURITY FIX: Using DOM creation to prevent XSS ---
+        // --- SECURITY: Using DOM creation to prevent XSS ---
         function displayResults(data, ingredient) {
             resultsContainer.innerHTML = ''; // Clear previous results
 
@@ -372,7 +378,7 @@
             resultsContainer.appendChild(table);
         }
 
-        // --- SECURITY FIX: Updated displayMessage to be safer ---
+        // --- SECURITY: Updated displayMessage to be safer ---
         function displayMessage(messageText, type = 'info') {
             resultsContainer.innerHTML = ''; // Clear container
 

@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # --- Config ---
 # We grab the key safely from the environment now.
-# If it's missing, we default to None (which might break things, but keeps it safe).
+# Note: FDA API allows limited requests without a key, so None is okay for testing.
 API_KEY = os.getenv("FDA_API_KEY")
 API_BASE_URL = "https://api.fda.gov/drug/label.json"
 
@@ -18,9 +18,13 @@ def _fetch_active_ingredient(brand_name):
     """
     Asks the FDA database: "Hey, what's actually inside this brand name drug?"
     """
+    # --- SECURITY/LOGIC FIX ---
+    # We strip quotes to prevent users from breaking the search syntax (e.g. searching for 'Advil"')
+    clean_name = brand_name.replace('"', '').strip()
+
     params = {
         'api_key': API_KEY,
-        'search': f'openfda.brand_name:"{brand_name}"',
+        'search': f'openfda.brand_name:"{clean_name}"',
         'limit': 1
     }
     try:
@@ -111,6 +115,11 @@ def search():
 
     if not brand_name:
         return jsonify({'status': 'error', 'message': 'Please enter a brand name.'}), 400
+
+    # --- SECURITY FIX ---
+    # Prevent massive strings from clogging the server
+    if len(brand_name) > 100:
+        return jsonify({'status': 'error', 'message': 'Brand name is too long (max 100 characters).'}), 400
 
     # Step 1: Identify what the drug actually is
     active_ingredient = _fetch_active_ingredient(brand_name)
