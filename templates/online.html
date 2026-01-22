@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Generic Medicine Finder (Online)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+
+    <style>
+        /* --- THEME SETTINGS --- */
+        :root {
+            --primary-color: #2563eb; /* Blue for Online Mode to distinguish it */
+            --primary-hover: #1d4ed8;
+            --dark-color: #1e293b;     
+            --light-color: #f1f5f9;
+            --text-color: #475569;
+            --border-color: #e2e8f0;
+            --bg-color: #f8fafc;
+            --white: #ffffff;
+            --error-bg: #fff1f2;
+            --error-text: #e53e3e;
+            --error-border: #fecaca;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--white);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+        
+        .header { text-align: center; margin-bottom: 2.5rem; }
+        .header i { font-size: 3rem; color: var(--primary-color); margin-bottom: 0.5rem; }
+        .header h1 { color: var(--dark-color); font-weight: 700; font-size: 2rem; }
+        .header p { margin-top: 0.5rem; font-size: 1rem; color: var(--text-color); }
+
+        #search-form { display: flex; gap: 0.75rem; margin-bottom: 2rem; }
+        #search-input {
+            flex-grow: 1;
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: all 0.2s;
+            color: var(--dark-color);
+        }
+        #search-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+            border-color: var(--primary-color);
+        }
+        #search-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background-color: var(--primary-color);
+            color: var(--white);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #search-button:hover { background-color: var(--primary-hover); }
+
+        #results-container {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #results-container.visible { opacity: 1; transform: translateY(0); }
+
+        .loader { display: flex; justify-content: center; align-items: center; padding: 2rem; }
+        .dot {
+            height: 12px; width: 12px; margin: 0 4px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot.one { animation-delay: -0.32s; }
+        .dot.two { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        .message {
+            display: flex; align-items: center; gap: 1rem; text-align: left;
+            padding: 1.25rem; border-radius: 8px;
+            border: 1px solid var(--border-color); background-color: var(--light-color);
+        }
+        .message.error { background-color: var(--error-bg); border-color: var(--error-border); color: var(--error-text); }
+        .message i { font-size: 1.75rem; color: var(--dark-color); }
+        .message.error i { color: var(--error-text); }
+
+        .results-header { margin-bottom: 1.5rem; }
+        .results-header h2 { font-size: 1.5rem; color: var(--dark-color); margin-bottom: 0.25rem; }
+        .results-header strong { color: var(--primary-color); font-weight: 600; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--light-color); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        tr:last-child td { border-bottom: none; }
+        td:first-child { font-weight: 500; color: var(--dark-color); }
+        
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.5rem; }
+            .container { padding: 1.5rem; }
+            #search-form { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <i class='bx bx-globe'></i>
+            <h1>Live Generic Medicine Finder</h1>
+            <p>Searches the FDA Database (Online Mode)</p>
+        </header>
+
+        <main>
+            <form id="search-form">
+                <input type="text" id="search-input" placeholder="e.g., Tylenol, Advil..." required>
+                <button type="submit" id="search-button">
+                    <i class='bx bx-search'></i>
+                    <span>Search</span>
+                </button>
+            </form>
+
+            <div id="results-container"></div>
+        </main>
+    </div>
+
+    <script>
+        const searchForm = document.getElementById('search-form');
+        const searchInput = document.getElementById('search-input');
+        const resultsContainer = document.getElementById('results-container');
+
+        // Auto-focus input
+        window.onload = () => searchInput.focus();
+
+        searchForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const brandName = searchInput.value.trim();
+            
+            if (!brandName) {
+                searchInput.focus();
+                return;
+            }
+
+            showLoader();
+
+            try {
+                // --- ONLINE MODE LOGIC ---
+                // We send the brand name to our Python Backend (app.py)
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ brand_name: brandName }),
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    displayResults(result.data, result.ingredient);
+                } else if (result.status === 'not_found') {
+                    displayMessage(`Active Ingredient: ${result.ingredient}<br>${result.message}`, 'info');
+                } else { 
+                    displayMessage(result.message, 'error');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage('Network error. Check your internet connection.', 'error');
+            }
+            
+            resultsContainer.classList.add('visible');
+        });
+
+        function showLoader() {
+            resultsContainer.classList.remove('visible');
+            resultsContainer.innerHTML = '<div class="loader"><div class="dot one"></div><div class="dot two"></div><div class="dot three"></div></div>';
+            setTimeout(() => resultsContainer.classList.add('visible'), 10);
+        }
+
+        function displayResults(data, ingredient) {
+            resultsContainer.innerHTML = ''; 
+
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'results-header';
+            headerDiv.innerHTML = `<h2>${data.length} Live Results Found</h2><p>Contains <strong>${ingredient}</strong></p>`;
+            resultsContainer.appendChild(headerDiv);
+
+            const table = document.createElement('table');
+            table.innerHTML = `<thead><tr><th>Product Name</th><th>Manufacturer</th></tr></thead><tbody></tbody>`;
+            const tbody = table.querySelector('tbody');
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${item.product_name}</td><td>${item.manufacturer}</td>`;
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            resultsContainer.appendChild(table);
+        }
+
+        function displayMessage(message, type) {
+            resultsContainer.innerHTML = '';
+            const msgDiv = document.createElement('div');
+            msgDiv.className = type === 'error' ? 'message error' : 'message';
+            msgDiv.innerHTML = `<i class='bx ${type === 'error' ? 'bxs-error-circle' : 'bxs-info-circle'}'></i><div>${message}</div>`;
+            resultsContainer.appendChild(msgDiv);
+        }
+    </script>
+</body>
+</html>
