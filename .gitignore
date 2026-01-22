@@ -1,21 +1,30 @@
-# --- Security (The most important part) ---
+# --- Security (CRITICAL) ---
+# These files contain secrets. NEVER share them.
 .env
 .env.local
 *.key
 
-# --- Python temporary files (Junk files) ---
+# --- Python Cache ---
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# --- Virtual Environments (Heavy folders we don't need to upload) ---
+# --- Virtual Environments ---
 venv/
 env/
 .venv/
 
-# --- IDE Settings (Your personal editor settings) ---
+# --- Flask Data ---
+instance/
+
+# --- IDE Settings (From Option 2 - Good practice) ---
 .vscode/
 .idea/
 
-# --- Operating System Junk ---
+# --- System Junk ---
 .DS_Store
 Thumbs.db
+
+# --- Note: We DO want to push these ---
+# medicines_data.json (So the offline app works for everyone)
