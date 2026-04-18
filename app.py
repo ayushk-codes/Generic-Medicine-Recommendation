@@ -199,7 +199,8 @@ def search():
                         'status': 'success',
                         'ingredient': detected_ingredient,
                         'data': full_list,
-                        'search_method': 'In-Memory Trie + Hash Map'
+                        'search_method': 'In-Memory Trie + Hash Map',
+                        'source_type': 'local'
                     })
                 else:
                     # If we can't find the family, just return what the Trie found
@@ -207,7 +208,8 @@ def search():
                         'status': 'success',
                         'ingredient': detected_ingredient or "Unknown",
                         'data': initial_matches,
-                        'search_method': 'In-Memory Trie'
+                        'search_method': 'In-Memory Trie',
+                        'source_type': 'local'
                     })
                     
         except Exception as e:
@@ -222,7 +224,8 @@ def search():
     if not active_ingredient:
         return jsonify({
             'status': 'error', 
-            'message': f"Sorry, I couldn't find details for '{brand_name}' in the database."
+            'message': f"Sorry, I couldn't find details for '{brand_name}' in the database.",
+            'source_type': 'api'
         })
 
     recommendations = _fetch_generics(active_ingredient, brand_name)
@@ -231,14 +234,16 @@ def search():
         return jsonify({
             'status': 'not_found',
             'ingredient': active_ingredient,
-            'message': f"Found ingredient '{active_ingredient}', but no other generic brands found."
+            'message': f"Found ingredient '{active_ingredient}', but no other generic brands found.",
+            'source_type': 'api'
         })
         
     return jsonify({
         'status': 'success',
         'ingredient': active_ingredient,
         'data': recommendations,
-        'search_method': 'FDA Live API'
+        'search_method': 'FDA Live API',
+        'source_type': 'api'
     })
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Generic Medicine Finder (Online)</title>
+    <title>Generic Medicine Finder</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +52,9 @@
         .header { text-align: center; margin-bottom: 2.5rem; }
         .header i { font-size: 3rem; color: var(--primary-color); margin-bottom: 0.5rem; }
         .header h1 { color: var(--dark-color); font-weight: 700; font-size: 2rem; }
-        .header p { margin-top: 0.5rem; font-size: 1rem; color: var(--text-color); }
+        
+        /* Added transition so the color changes smoothly */
+        .header p { margin-top: 0.5rem; font-size: 1rem; color: var(--text-color); transition: color 0.3s ease; } 
 
         #search-form { display: flex; gap: 0.75rem; margin-bottom: 2rem; }
         #search-input {
@@ -137,8 +139,8 @@
     <div class="container">
         <header class="header">
             <i class='bx bx-globe'></i>
-            <h1>Live Generic Medicine Finder</h1>
-            <p>Searches the FDA Database (Online Mode)</p>
+            <h1>Generic Medicine Finder</h1>
+            <p id="source-indicator">Search for affordable generic alternatives</p>
         </header>
 
         <main>
@@ -158,6 +160,7 @@
         const searchForm = document.getElementById('search-form');
         const searchInput = document.getElementById('search-input');
         const resultsContainer = document.getElementById('results-container');
+        const sourceIndicator = document.getElementById('source-indicator'); // <-- NEW: Grab the subtitle element
 
         // Auto-focus input
         window.onload = () => searchInput.focus();
@@ -184,6 +187,19 @@
 
                 const result = await response.json();
                 
+                // --- NEW: DYNAMIC UI UPDATE LOGIC ---
+                if (result.source_type === 'local') {
+                    sourceIndicator.innerHTML = '<strong>⚡ Source: Local Cache (Sub-millisecond)</strong>';
+                    sourceIndicator.style.color = 'var(--primary-color)'; // Make it pop with blue
+                } else if (result.source_type === 'api') {
+                    sourceIndicator.innerHTML = '<strong>🌐 Source: openFDA API (Live Fallback)</strong>';
+                    sourceIndicator.style.color = 'var(--error-text)'; // Highlight API fallback in red
+                } else {
+                    sourceIndicator.innerHTML = 'Search for affordable generic alternatives';
+                    sourceIndicator.style.color = 'var(--text-color)';
+                }
+                // ------------------------------------
+
                 if (result.status === 'success') {
                     displayResults(result.data, result.ingredient);
                 } else if (result.status === 'not_found') {
@@ -211,7 +227,7 @@
 
             const headerDiv = document.createElement('div');
             headerDiv.className = 'results-header';
-            headerDiv.innerHTML = `<h2>${data.length} Live Results Found</h2><p>Contains <strong>${ingredient}</strong></p>`;
+            headerDiv.innerHTML = `<h2>${data.length} Results Found</h2><p>Contains <strong>${ingredient}</strong></p>`; // Removed 'Live' from Results
             resultsContainer.appendChild(headerDiv);
 
             const table = document.createElement('table');
