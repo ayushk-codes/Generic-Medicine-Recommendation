@@ -1,59 +1,110 @@
-# Generic Medicine Search Engine (Hybrid Architecture)
+# Generic Medicine Data Platform (ETL + Low-Latency API)
 
-A low-latency, high-availability search engine designed to find affordable generic alternatives for brand-name medicines.
-
-This project has evolved from a simple API wrapper into a **hybrid system**. It prioritizes sub-millisecond local lookups using custom in-memory data structures and gracefully falls back to the live openFDA API only when necessary.
-
----
-
-### 🚀 Key Technical Features
-
-* **Hybrid Architecture (Offline-First):** Implements a "Cache-Aside" strategy. The system consults a local, in-memory hot cache first for instant results and uses the live openFDA API as a comprehensive fallback source.
-* **Optimized Latency (O(L) Search):** Utilizes a custom-built **Trie (Prefix Tree)** data structure to perform searches in $O(L)$ time (where $L$ is the length of the search query), regardless of the dataset size.
-* **Relational Data Mapping (O(1) Lookup):** Once a medicine is identified via the Trie, an accompanying **Hash Map (Dictionary)** is used to instantly retrieve all related generic alternatives grouped by active ingredient in $O(1)$ time.
-* **Fault Tolerance:** The system is designed to fail gracefully. If the local cache fails to initialize, the application automatically degrades to a purely online mode, ensuring 100% uptime for the user.
-* **Custom Data Pipeline:** Includes the original ETL (Extract, Transform, Load) scripts used to scrape, sanitize, and structure the local dataset from raw sources.
+A hybrid data platform designed to find affordable generic alternatives for brand-name medicines.  
+This system combines a **custom ETL data pipeline** with a **low-latency, fault-tolerant search API**, enabling sub-millisecond local lookups with intelligent fallback to live data sources.
 
 ---
 
-### 🛠️ System Architecture
+## 🚀 Key Technical Features
 
-The search logic follows a three-tiered approach to ensure the fastest possible response time:
+* **Hybrid Architecture (Offline-First):** Implements a cache-aside strategy—serving results from an in-memory dataset first and falling back to the live openFDA API only on cache misses.
+* **Optimized Latency ($O(L)$ Search):** Uses a custom-built **Trie (Prefix Tree)** for prefix-based search in $O(L)$ time, independent of dataset size.
+* **Relational Mapping ($O(1)$ Lookup):** Uses a **Hash Map (Dictionary)** to instantly retrieve all generic alternatives grouped by active ingredient in $O(1)$ time.
+* **Fault Tolerance:** Automatically degrades to live API mode if the local cache fails, ensuring high availability.
+* **End-to-End Data Pipeline:** Includes a full ETL workflow to extract, clean, validate, and structure real-world medical data.
+
+---
+
+## 📊 Data Engineering Pipeline (ETL)
+
+A custom Python-based ETL pipeline was developed to transform raw, inconsistent API data into a structured, query-optimized dataset.
+
+* **Extract:** Pulled raw drug data from the openFDA API with batching and rate-limit handling.
+* **Transform:**
+  - Normalized inconsistent drug names and formats.
+  - Removed duplicates and packaging noise.
+  - Enforced strict **active ingredient matching** using set-based validation.
+* **Load:** Structured cleaned data into a nested JSON format optimized for in-memory access.
+* **Data Validation:** Implemented checks for dataset completeness, consistency, and correctness before deployment.
+
+```mermaid
+graph LR
+    A[openFDA API] -->|Extract| B(discover_brands.py);
+    B -->|Clean & Filter| C[brand_names.txt];
+    C -->|Transform & Validate| D(mimip.py);
+    D -->|Structured Output| E[medicines_data.json];
+    E -->|Load into RAM| F(Flask API + Trie);
+```
+
+---
+
+## ⚙️ System Architecture & Execution Flow
 
 ```mermaid
 graph TD
     A[User Input eg. Advil] --> B{Check Local Trie O L};
     B -- Found --> C[Extract Active Ingredient eg. Ibuprofen];
     C --> D[Query Hash Map Index O 1];
-    D --> E[Return All Generic Siblings Instant];
-    B -- Not Found --> F[Fallback to Live FDA API Slow];
-    F --> G[Return API Results approx 2s];
+    D --> E[Return Generic Alternatives <1ms];
+    B -- Not Found --> F[Fallback to Live FDA API ~2s];
+    F --> G[Return API Results];
 ```
 
-1. Tier 1: In-Memory Trie: The app loads a processed JSON dataset into RAM on startup. User queries are first checked against this Trie for immediate prefix matching.
-
-2. Tier 2: In-Memory Hash Map: If a match is found in the Trie, its active ingredient is used as a key to instantly fetch the complete list of alternative medicines from a pre-grouped Hash Map.
-
-3. Tier 3: Live API Fallback: If the medicine is not found locally (a cache miss), the system makes a real-time network request to the openFDA API to retrieve the data.
-
-### 📂 Project Structure
-
-The codebase is organized to separate application logic from data engineering tasks.
-
-* **`app.py`**: The core Flask application. It handles server startup, loads data into RAM, and implements the hybrid search routing logic.
-* **`trie.py`**: Contains the custom Python implementation of the `TrieNode` and `MedicineTrie` classes used for $O(L)$ prefix searching.
-* **`medicines_data.json`**: The processed, structured dataset that acts as the local hot cache.
-* **`data_pipeline/`**: A directory containing the raw ETL scripts used to engineer the dataset:
-    * `discover_brands.py`: Scripts for initial data gathering.
-    * `convert_to_json.py`: Cleans and structures raw data into the final JSON format.
-* **`templates/`**: Holds the frontend HTML interface.
+### 🔍 Execution Flow
+* **Tier 1: In-Memory Trie:** Performs prefix matching on user input in $O(L)$ time. Enables instant type-ahead search.
+* **Tier 2: In-Memory Hash Map:** Uses active ingredient as a key. Retrieves all related medicines in $O(1)$ time.
+* **Tier 3: Live API Fallback:** Handles cache misses via real-time openFDA API calls. Ensures completeness and reliability. 
 
 ---
 
-### 🔮 Future Roadmap
+## 📂 Project Structure
 
-While the current system achieves significant latency improvements, future scalability plans include:
+```text
+├── app.py                  # Flask application (API + routing logic)
+├── trie.py                 # Trie implementation for O(L) search
+├── medicines_data.json     # Preprocessed dataset (hot cache)
+├── data_pipeline/
+│   ├── discover_brands.py  # Raw data extraction
+│   ├── mimip.py            # Transformation + validation logic
+│   └── json_check.py       # Data quality checks
+└── templates/              # Frontend interface
+```
 
-* **Automated Cache Invalidation:** Implementing a daily Cron Job (using Celery or a similar task queue) to query the FDA API for delta updates and refresh the local `medicines_data.json` cache automatically.
-* **Persistent In-Memory Store:** Migrating from a Python dictionary to a dedicated Redis instance to handle much larger datasets beyond single-server RAM limits.
-* **Fuzzy Search:** Integrating Levenshtein distance algorithms into the Trie traversal to handle user typos gracefully.
+---
+
+## 💻 Local Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/ayushk-codes/Generic-Medicine-Recommendation.git
+
+# Move into the project directory
+cd Generic-Medicine-Recommendation
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Add your FDA API key
+echo "FDA_API_KEY=your_api_key_here" > .env
+
+# Run the server
+python app.py
+```
+
+---
+
+## 🔮 Future Roadmap
+
+* **Automated Cache Invalidation:** Scheduled ETL jobs (Cron / Celery) to refresh dataset with incremental updates.
+* **Pipeline Orchestration:** Integrate tools like Apache Airflow for managing ETL workflows.
+* **Scalable Storage:** Migrate in-memory dictionary to Redis for larger datasets.
+* **Fuzzy Search:** Add Levenshtein distance support for typo-tolerant queries.
+* **Data Expansion:** Incorporate additional sources for broader drug coverage.
+
+---
+
+## 🧠 Key Takeaway
+This project demonstrates the ability to:
+1. Build real-world ETL pipelines for messy, external data.
+2. Design low-latency backend systems with optimized data structures.
+3. Balance data engineering and system design in a production-style architecture.
